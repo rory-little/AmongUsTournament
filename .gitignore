@@ -1,0 +1,12 @@
+__pycache__/
+
+# leaks
+.env
+
+# editor turds
+*.swp
+**.vscode
+*~
+
+# anything unholy
+*.js
