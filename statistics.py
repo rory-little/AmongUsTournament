@@ -8,6 +8,7 @@ class PlayerStats:
   def total_games(self):
     self.crew_games + self.imp_games
 
+
 BASE_WINRATE = 0.5
 BASE_CREW_WINRATE = 0.65
 BASE_IMP_WINRATE = 1 - BASE_CREW_WINRATE
@@ -53,11 +54,19 @@ class Statistics:
             else -1.0)
 
   def get_player(self, id):
-    if id in self.players.keys():
-      player = self.players[id]
-    else:
-      player = PlayerStats()
-      self.players[id] = player
-    return player
+    # Inefficient, but it's python so we don't care about random object creation
+    return self.players.setdefault(id, PlayerStats())
 
+  def enter_result(self, result):
+    self.total_games += 1
+    self.crew_wins += 0 if result.imp_win else 1
 
+    for member in result.players:
+      player = self.get_player(member.id)
+
+      if member in result.imps:
+        player.imp_games += 1
+        player.imp_wins += 1 if result.imp_win else 0
+      else:
+        player.crew_games += 1
+        player.crew_wins += 0 if result.crew_win else 1
