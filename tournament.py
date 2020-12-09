@@ -1,18 +1,6 @@
 from statistics import Statistics
 
-LOBBY_WAITING = 0
-LOBBY_ACTIVE = 1
-
 LOBBY_SIZE = 10
-
-class Lobby:
-  def __init__(self):
-    self.players = {}
-    self.state = LOBBY_WAITING
-
-  def is_ready(self):
-    return len(self.players) == 10 and  self.state == LOBBY_WAITING
-
 
 class Result:
   def __init__(self, players, imps, imp_win):
@@ -25,9 +13,6 @@ class Tournament:
   def __init__(self):
     # Queue of members waiting in queue channel
     self.queue = []
-
-    # Lobbies, keyed by channel id
-    self.lobbies = {}
 
     # Active games, keyed by lobby id
     self.games = {}
@@ -44,51 +29,48 @@ class Tournament:
     # Tournament data
     self.statistics = Statistics()
 
+  def game_running(self, game_id):
+    return game_id in self.games
 
-  def find_lobby_by_players(self, players):
-    for id in self.lobbies.keys():
-      lobby = self.lobbies[id]
-      if players < lobby.players:
-        return (lobby, id)
-    return None
+  def game_players(self, game_id):
+    return self.games.get(game_id)
 
-  def find_lobby_by_id(self, id):
-    return self.lobbies.get(id)
+  def start_game(self, players, game_id):
+    if len(players) != LOBBY_SIZE:
+      return "You need exactly 10 players to start a game"
+    elif game_id in self.games:
+      return "Game cannot be started, it is already running"
+    else:
+      self.games[game_id] = players
+      return None
 
-  def start_game(self, id):
-    lobby = self.lobbies[id]
+  def declare_game(self, game_id, imps, imp_win, result_id):
+    players = self.games.get(game_id)
 
-    # if the lobby is ready, start the game
-    if lobby.is_ready():
-      self.games[id] = lobby.players
-      lobby.state = LOBBY_ACTIVE
+    if players:
+      self.pending[result_id] = Result(players, imps, imp_win)
       return True
     else:
       return False
 
-  def declare_game(self, lobby, imps, imp_win, id):
-    result = Result(self.games[lobby.id], imps, imp_win)
-    self.pending[id] = result
-    lobby.state = LOBBY_WAITING
-
-  def cancel_game(self, lobby):
-    self.games.pop(lobby.id, None)
-    lobby.state = LOBBY_WAITING
+  def cancel_game(self, game_id):
+    return self.games.pop(game_id, None) != None
   
-  def confirm_result(self, id):
-    result = self.pending.pop(id, None)
+  def confirm_result(self, result_id):
+    result = self.pending.pop(result_id, None)
 
     if result:
       self.statistics.enter_result(result)
+      self.history.append(result)
       return True
     else:
       return False
 
-  def deny_result(self, id):
-    result = self.pending.pop(id, None)
+  def deny_result(self, result_id):
+    result = self.pending.pop(result_id, None)
 
     if result:
-      self.history.append(result)
+      self.disputed.append(result)
       return True
     else:
       return False
