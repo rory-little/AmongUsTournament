@@ -2,15 +2,15 @@ import discord
 from discord.ext import commands
 
 import tournament
-import config as cfg
+from config import Config
 
 ACCEPT_EMOJI = "✅"
 DENY_EMOJI = "❌"
 
-ACCEPT_THRESHOLD = 8
+ACCEPT_THRESHOLD = 6
 DENY_THRESHOLD = 2
 
-def make_declaring_message(ctx:commands.Context,
+async def make_declaring_message(ctx:commands.Context,
                            channel:discord.VoiceChannel,
                            players:set[discord.Member],
                            imps:set[discord.Member],
@@ -27,7 +27,7 @@ def make_declaring_message(ctx:commands.Context,
 
   embed = discord.Embed(
       title=f"Game ended in {channel.name}",
-      descrption="Please react to this message to complete the game"
+      description="Please react to this message to complete the game"
     )
   embed.add_field(name="Players", value=player_str)
   embed.add_field(name="Imposters", value=imp_str)
@@ -42,12 +42,12 @@ def make_declaring_message(ctx:commands.Context,
 class Game(commands.Cog):
   def __init__(self,
                tournament:tournament.Tournament,
-               config:cfg.Config):
+               config:Config):
     self.tournament = tournament
     self.config = config
 
 
-  def __get_voice_channel(self,
+  async def __get_voice_channel(self,
                           ctx:commands.Context,
                           *channel:discord.VoiceChannel):
     user_channel = None
@@ -60,10 +60,10 @@ class Game(commands.Cog):
     elif len(channel) >= 2:
       raise commands.BadArgument(message="Too many voice channels given")
     elif (channel != user_channel
-          and ctx.author.top_role < self.config.mod):
+          and ctx.author.top_role < self.config.get_mod()):
       await ctx.send(
-          f"Only {self.config.mod.name} can start and end games they are "
-          "not in"
+          f"Only {self.config.get_mod().name} can start and end games "
+          "they are not in"
         )
       return None
     else:
@@ -82,7 +82,7 @@ class Game(commands.Cog):
   async def start(self,
                   ctx:commands.Context,
                   *channel:commands.VoiceChannelConverter):
-    channel = self.__get_voice_channel(ctx, channel)
+    channel = await self.__get_voice_channel(ctx, *channel)
     
     if not channel:
       return
@@ -99,7 +99,7 @@ class Game(commands.Cog):
   async def cancel(self,
                    ctx:commands.Context,
                    *channel:commands.VoiceChannelConverter):
-    channel = self.__get_voice_channel(ctx, channel)
+    channel = await self.__get_voice_channel(ctx, *channel)
 
     if not channel:
       return
@@ -110,12 +110,12 @@ class Game(commands.Cog):
       await ctx.send("No active game exists to cancel")
 
 
-  def __declare_result(self,
+  async def __declare_result(self,
                        ctx:commands.Context,
                        imps:set[discord.Member],
                        imp_win:bool,
                        *channel:discord.VoiceChannel):
-    channel = self.__get_voice_channel(ctx, channel)
+    channel = await self.__get_voice_channel(ctx, *channel)
 
     if not channel:
       return
@@ -127,22 +127,24 @@ class Game(commands.Cog):
                      "result cannot be declared")
       return
 
-    msg_id = make_declaring_message(ctx, channel, players, imps, imp_win)
+    msg_id = await make_declaring_message(ctx, channel, players, imps, imp_win)
     self.tournament.declare_game(channel.id, imps, imp_win, msg_id)
 
 
   @commands.command(name='impwin', aliases=['iw', 'crewlose', 'cl'])
   async def imp_win(self, ctx,
                     imp1:commands.MemberConverter,
-                    imp2:commands.MemberConverter):
-    self.__declare_result(ctx, {imp1, imp2}, True)
+                    imp2:commands.MemberConverter,
+                    *channel:commands.VoiceChannelConverter):
+    await self.__declare_result(ctx, {imp1, imp2}, True, *channel)
 
 
   @commands.command(name='implose', aliases=['il', 'crewwin', 'cw'])
   async def imp_lose(self, ctx,
                     imp1:commands.MemberConverter,
-                    imp2:commands.MemberConverter):
-    self.__declare_result(ctx, {imp1, imp2}, False)
+                    imp2:commands.MemberConverter,
+                    *channel:commands.VoiceChannelConverter):
+    await self.__declare_result(ctx, {imp1, imp2}, False, *channel)
 
 
   @commands.Cog.listener()
@@ -154,3 +156,9 @@ class Game(commands.Cog):
         self.tournament.confirm_result(reaction.message.id)
       elif reaction.emoji == DENY_EMOJI and reaction.count >= DENY_THRESHOLD:
         self.tournament.deny_result(reaction.message.id)
+
+  @commands.Cog.listener()
+  async def on_command_error(self,
+                             ctx:commands.Context,
+                             error):
+    await ctx.send("Error in command, try consulting the documentation")

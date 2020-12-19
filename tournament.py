@@ -45,7 +45,7 @@ class Tournament:
       return None
 
   def declare_game(self, game_id, imps, imp_win, result_id):
-    players = self.games.get(game_id)
+    players = self.games.pop(game_id, None)
 
     if players:
       self.pending[result_id] = Result(players, imps, imp_win)

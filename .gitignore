@@ -3,6 +3,7 @@ bot_test/
 
 # leaks
 .env
+.config
 
 # editor turds
 *.swp

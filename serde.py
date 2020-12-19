@@ -26,7 +26,7 @@ def as_stats_object(dct:dict):
     return dct
 
 def serialize_stats(stats):
-  return json.dumps(stats, cls=StatsEncoder)
+  return json.dump(stats, open("stats.json", "w"), cls=StatsEncoder)
 
 def deserialize_stats(j):
   return json.loads(j, object_hook=as_stats_object)
