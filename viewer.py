@@ -19,5 +19,3 @@ class Viewer(commands.Cog):
     embed.add_field(name="Crew Wins",
                     value=f"{player.crew_wins}/{player.crew_games}")
     await ctx.send("", embed=embed)
-
-    

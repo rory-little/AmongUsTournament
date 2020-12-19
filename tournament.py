@@ -1,6 +1,6 @@
 from statistics import Statistics
 
-LOBBY_SIZE = 10
+LOBBY_SIZE = 10 # TODO
 
 class Result:
   def __init__(self, players, imps, imp_win):

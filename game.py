@@ -7,7 +7,7 @@ from config import Config
 ACCEPT_EMOJI = "✅"
 DENY_EMOJI = "❌"
 
-ACCEPT_THRESHOLD = 6
+ACCEPT_THRESHOLD = 6 # TODO
 DENY_THRESHOLD = 2
 
 async def make_declaring_message(ctx:commands.Context,

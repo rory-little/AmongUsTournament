@@ -15,7 +15,9 @@ BASE_IMP_WINRATE = 1 - BASE_CREW_WINRATE
 BASE_CREW_VALUE = 1 / BASE_CREW_WINRATE
 BASE_IMP_VALUE = 1 / BASE_IMP_WINRATE
 
-MAX_GAMES = 8
+MAX_GAMES = 5
+
+WINRATE_GAME_THRESHOLD = 8
 
 class Statistics:
   def __init__(self):
@@ -32,17 +34,17 @@ class Statistics:
     return 1 - self.crew_winrate()
   
   def crew_value(self):
-    return (1 / self.crew_winrate()
-            if self.total_games > 15
+    return (1 / (self.crew_winrate() if self.crew_winrate() != 0 else 0.1)
+            if self.total_games > WINRATE_GAME_THRESHOLD
             else BASE_CREW_VALUE)
 
   def imp_value(self):
-    return (1 / self.imp_winrate()
-            if self.total_games > 15
+    return (1 / (self.imp_winrate() if self.imp_winrate() != 0 else 0.1)
+            if self.total_games > WINRATE_GAME_THRESHOLD
             else BASE_IMP_VALUE)
 
   def crew_score(self, player):
-    return self.imp_value() * player.imp_wins
+    return self.crew_value() * player.crew_wins
 
   def imp_score(self, player):
     return self.imp_value() * player.imp_wins
@@ -51,7 +53,7 @@ class Statistics:
     return self.crew_score(player) + self.imp_score(player)
 
   def rating(self, player):
-    return (self.score(player) / player.total_games() * 1000
+    return int(self.score(player) / player.total_games() * 1000
             if player.total_games() >= 1
             else -1.0)
 
@@ -72,4 +74,4 @@ class Statistics:
           player.imp_wins += 1 if result.imp_win else 0
         else:
           player.crew_games += 1
-          player.crew_wins += 0 if not result.imp_win else 1
+          player.crew_wins += 1 if not result.imp_win else 0
